@@ -1,0 +1,50 @@
+============================================================
+PURE EDGESIM - SIMULATION RESULTS SUMMARY
+============================================================
+Total scenarios: 30
+
+Architectures:
+['ALL', 'CLOUD_ONLY', 'EDGE_AND_CLOUD', 'EDGE_ONLY', 'MIST_AND_CLOUD', 'MIST_AND_EDGE', 'MIST_ONLY']
+
+Algorithms:
+['ROUND_ROBIN', 'TRADE_OFF']
+
+Edge device counts:
+['100', '200', '300']
+
+Scenario distribution:
+Counter({'CLOUD_ONLY': 6, 'EDGE_ONLY': 6, 'MIST_ONLY': 6, 'MIST_AND_CLOUD': 3, 'EDGE_AND_CLOUD': 3, 'MIST_AND_EDGE': 3, 'ALL': 3})
+
+============================================================
+TASK EXECUTION SUMMARY
+============================================================
+CLOUD_ONLY         | TRADE_OFF    | Devices: 100 | Generated: 22200  | Success: 2400   | Avg delay: 0.1622
+CLOUD_ONLY         | TRADE_OFF    | Devices: 200 | Generated: 44740  | Success: 4740   | Avg delay: 0.16
+CLOUD_ONLY         | TRADE_OFF    | Devices: 300 | Generated: 67480  | Success: 7080   | Avg delay: 0.1599
+EDGE_ONLY          | TRADE_OFF    | Devices: 100 | Generated: 22200  | Success: 16200  | Avg delay: 0.1622
+EDGE_ONLY          | TRADE_OFF    | Devices: 200 | Generated: 44740  | Success: 32219  | Avg delay: 0.16
+EDGE_ONLY          | TRADE_OFF    | Devices: 300 | Generated: 67480  | Success: 19023  | Avg delay: 0.1599
+MIST_ONLY          | TRADE_OFF    | Devices: 100 | Generated: 22200  | Success: 8770   | Avg delay: 0.2261
+MIST_ONLY          | TRADE_OFF    | Devices: 200 | Generated: 44740  | Success: 18353  | Avg delay: 0.2608
+MIST_ONLY          | TRADE_OFF    | Devices: 300 | Generated: 67480  | Success: 33871  | Avg delay: 0.2404
+MIST_AND_CLOUD     | TRADE_OFF    | Devices: 100 | Generated: 22200  | Success: 8370   | Avg delay: 0.1947
+MIST_AND_CLOUD     | TRADE_OFF    | Devices: 200 | Generated: 44740  | Success: 24149  | Avg delay: 0.211
+MIST_AND_CLOUD     | TRADE_OFF    | Devices: 300 | Generated: 67480  | Success: 37938  | Avg delay: 0.2065
+EDGE_AND_CLOUD     | TRADE_OFF    | Devices: 100 | Generated: 22200  | Success: 16185  | Avg delay: 0.1622
+EDGE_AND_CLOUD     | TRADE_OFF    | Devices: 200 | Generated: 44740  | Success: 32243  | Avg delay: 0.16
+EDGE_AND_CLOUD     | TRADE_OFF    | Devices: 300 | Generated: 67480  | Success: 36287  | Avg delay: 0.1599
+MIST_AND_EDGE      | TRADE_OFF    | Devices: 100 | Generated: 22200  | Success: 16818  | Avg delay: 0.1798
+MIST_AND_EDGE      | TRADE_OFF    | Devices: 200 | Generated: 44740  | Success: 33857  | Avg delay: 0.1946
+MIST_AND_EDGE      | TRADE_OFF    | Devices: 300 | Generated: 67480  | Success: 52770  | Avg delay: 0.1977
+ALL                | TRADE_OFF    | Devices: 100 | Generated: 22200  | Success: 16408  | Avg delay: 0.201
+ALL                | TRADE_OFF    | Devices: 200 | Generated: 44740  | Success: 33883  | Avg delay: 0.1937
+ALL                | TRADE_OFF    | Devices: 300 | Generated: 67480  | Success: 52816  | Avg delay: 0.2024
+CLOUD_ONLY         | ROUND_ROBIN  | Devices: 100 | Generated: 22200  | Success: 2400   | Avg delay: 0.1622
+CLOUD_ONLY         | ROUND_ROBIN  | Devices: 200 | Generated: 44740  | Success: 4740   | Avg delay: 0.16
+CLOUD_ONLY         | ROUND_ROBIN  | Devices: 300 | Generated: 67480  | Success: 7080   | Avg delay: 0.1599
+EDGE_ONLY          | ROUND_ROBIN  | Devices: 100 | Generated: 22200  | Success: 16200  | Avg delay: 0.1622
+EDGE_ONLY          | ROUND_ROBIN  | Devices: 200 | Generated: 44740  | Success: 32083  | Avg delay: 0.16
+EDGE_ONLY          | ROUND_ROBIN  | Devices: 300 | Generated: 67480  | Success: 18916  | Avg delay: 0.1599
+MIST_ONLY          | ROUND_ROBIN  | Devices: 100 | Generated: 22200  | Success: 7436   | Avg delay: 0.2635
+MIST_ONLY          | ROUND_ROBIN  | Devices: 200 | Generated: 44740  | Success: 22103  | Avg delay: 0.2335
+MIST_ONLY          | ROUND_ROBIN  | Devices: 300 | Generated: 67480  | Success: 34415  | Avg delay: 0.2422

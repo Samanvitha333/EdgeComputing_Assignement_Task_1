@@ -1,0 +1,247 @@
+---
+description: "Answers to common PureEdgeSim questions: Java setup, build failures, results, charts, custom models, energy, and reproducible research."
+---
+# Frequently asked questions
+
+Short answers to questions that come up when running, extending, or interpreting PureEdgeSim. Each answer points to the guide that covers the topic in depth.
+
+## Running and building
+
+### Which Java version do I need?
+
+The source targets Java 8, so any JDK from 8 onward can compile and run it. The project is built and tested with newer JDKs in continuous integration. If Maven picks a different JDK than the one on your `PATH`, set `JAVA_HOME`.
+
+### The quick start uses `examples.Example1`, but I see no such class.
+
+Run from the repository root with Maven, which compiles the sources first:
+
+```bash
+mvn compile exec:java -Dexec.mainClass="examples.Example1"
+```
+
+The Java package is `examples`, even though each scenario has its own folder under `PureEdgeSim/examples/ExampleX/`. The Maven build adds every example folder as a source root, so the files keep the flat package. `Example5` and `Example8` need the jFuzzyLogic jar committed at `libs/jFuzzyLogic_v3.0.jar`; it is declared as a system-scoped dependency and the `exec` plugin runs with the compile classpath, so `mvn exec:java -Dexec.mainClass="examples.Example8"` works without extra setup.
+
+### The JVM does not exit when the simulation finishes.
+
+Live charts keep a Swing window open, and a non-daemon window keeps the JVM alive. Close the chart window, or disable charts:
+
+```properties
+display_real_time_charts=false
+save_charts=false
+```
+
+### Why is there a pause between iterations?
+
+`pause_length` adds a wall-clock pause after each scenario so that live results can be inspected. It does not affect simulated time. Set it to `0` for batch runs.
+
+### How do I run a single scenario instead of the full sweep?
+
+Set one architecture, one algorithm, and one device count:
+
+```properties
+min_number_of_edge_devices=100
+max_number_of_edge_devices=100
+edge_device_counter_size=100
+orchestration_architectures=ALL
+orchestration_algorithms=TRADE_OFF
+```
+
+The device count list is built from `min`, `max`, and the step size, so equal minimum and maximum produce one value.
+
+### How do I use my own settings folder?
+
+```java
+Simulation simulation = new Simulation();
+simulation.setCustomSettingsFolder("/absolute/path/to/settings/");
+simulation.launchSimulation();
+```
+
+The path must end with a separator, because the setter appends the file names directly. The folder must contain exactly the five input files listed in [Configuration](configuration.md).
+
+### Can I launch several simulations at once with different settings?
+
+Not safely in parallel. The parsed settings live in static fields (`SimulationParameters`), so two concurrent launches with different folders overwrite each other. Launch them sequentially, or run separate JVMs.
+
+## Results and configuration
+
+### Why are my results different on every run?
+
+Task arrival times, task sizes, node capacities and mobility are drawn at random, and by default the seed comes from a secure random generator, so no two runs are identical. The simulator is stochastic by design: use repetitions and report distributions.
+
+To make a run reproducible, set `random_seed` in `simulation_parameters.properties`. Everything that is drawn afterwards comes from that seed, so the same configuration replays the same task list, capacities and paths. Keep a seed while debugging, and change or clear it when you measure: repeating one seed twenty times gives twenty copies of one experiment, not twenty samples. See [Research guide](research-guide.md).
+
+### Why do all tasks fail in some architectures?
+
+The default orchestrator cannot serve an architecture whose layers it cannot use. A cloud-only orchestrator returns `-1` when the candidate list contains no cloud node, for example under `MIST_ONLY`. Tasks then fail with `NO_OFFLOADING_DESTINATIONS`. Either restrict the architecture list or make the orchestrator handle every architecture in the sweep.
+
+### The CSV success count is negative. Is that a bug?
+
+Column 9 is computed as sent tasks minus failed tasks, and the failed counter includes tasks that were never sent because their device was already dead. In runs with early device deaths the subtraction can undercount and occasionally go negative. Derive success from generated tasks and the failure columns instead. The exact formulas and the censoring caveat are in [Output and metrics](output-and-metrics.md).
+
+### Why is the execution delay so small compared with the task latency?
+
+The execution-delay columns contain CPU time only. Network time is not included. End-to-end task delay is available inside the simulator as `task.getTotalDelay()` but is not written to the CSV. For a service graph, the average end-to-end makespan of a request is written in the last CSV column and in the console `Requests` block. Use a custom logger if the claim is about per-task end-to-end latency.
+
+### Why do my service-graph requests fail even though every subtask met its latency?
+
+The application `latency` is the end-to-end deadline of the request, drawn once and shared by all subtasks. A chain of subtasks that each meet their own bound can still finish after that deadline, especially if the plan sends stages to distant nodes. Either raise the application latency or lower the per-subtask bounds so the graph fits the deadline. See [Task lifecycle](task-lifecycle.md#stage-6-result-return).
+
+### Can some subtasks fail without failing the whole request?
+
+Yes, declare them `optional="true"`. A failure in their dependencies skips them with status `SKIPPED` instead of failing the request, and their dependents are released without the missing input. The skipped subtasks are counted in their own report line and CSV column. An optional subtask must list at least one dependency, because only a dependency can fail; the parser rejects an optional root. See [Configuration: service graphs](configuration.md#service-graphs).
+
+### Why did changing bandwidth not change my results much?
+
+Check `realistic_network_model`. When it is `false`, each transfer completes in one step and uses only its instantaneous bandwidth share, so there is no congestion over time. Bandwidth still affects the computed transfer time, but much less than in a loaded, realistic run. Also confirm that the changed parameter corresponds to the link type used by your traffic.
+
+The gap is not small: [Example 27](../PureEdgeSim/examples/Example27/README.md)
+saturates a shared WAN uplink at four megabits per second offered against three
+carried, and the default model reports every one of its 189 requests succeeding
+in the time one request costs on an empty link, while the realistic model queues
+them and loses 182 on their deadline.
+
+### Which application types and task-graph shapes can I model?
+
+There is no fixed list. An application is defined by its numbers (rate, latency bound, sizes, and task length), and `type` is a free-text label that the orchestrator can read. Any acyclic task graph can be declared: a monolithic application (one task per request), a sequential chain, a parallel fan-out with a join, or a mixed graph with several roots and branches. The shapes and their limitations are in [Simulation models](models.md#task-graph-shapes).
+
+### Can a partitioning policy run once, or must it run per task?
+
+Both work. A **static** plan is computed once from the application profiles, usually in the orchestrator constructor, as in `Example9` and `Example10`. A **dynamic** plan is recomputed inside `findComputingNode` or `orchestrate` from the live node loads and reachability; `Example24` refreshes the tier of every subtask every 30 seconds and compares the result with a frozen plan. Either way, clear the application placement after each decision, or the first subtask pins the whole application to one node. See [Writing orchestrators](writing-orchestrators.md#static-and-dynamic-partition-plans).
+
+### Why do tasks keep going to the same node even though another node is free?
+
+Application placement is cached per device. The orchestrator is called only when the device has no placement. Later tasks reuse the first decision until a failure or a mobility event clears it. See [Models](models.md) for the exact invalidation rules.
+
+### Why do tasks fail with "no resources" when nodes look idle?
+
+The destination rejects a task when available RAM is not greater than the container size or when storage is insufficient. A node can be idle in CPU terms and still lack RAM or storage. The failure is checked before execution at phase 2. See [Task lifecycle](task-lifecycle.md).
+
+### Why are no tasks generated for some devices?
+
+Sensors and devices with `isGeneratingTasks()` false are excluded. Application usage percentages also assign some devices exclusively to other applications. The last application in `applications.xml` receives all remaining devices, including rounding remainders. See [Configuration](configuration.md).
+
+### Why is the output folder deleted at the start of a run?
+
+`clear_output_folder=true` deletes the configured output folder on the first iteration of a run. Keep it `false` unless you are sure the folder contains nothing you need. Point experiments at a dedicated output folder.
+
+### Why does the CSV contain `NaN` or `Infinity`?
+
+An average divided by a zero count. Common causes are a scenario with no completed tasks, no finished transfers, or an architecture with no node of a given level. Treat these as missing values and check the scenario setup. Do not replace them with zero.
+
+### Where is the MAN network usage in the CSV?
+
+The "Network usage (s)" column is the total of the three networks (LAN, MAN and WAN), and the two following columns give the WAN and LAN parts. MAN has no column of its own, but it is part of the total: subtract the WAN and LAN columns from it, or read the `Man=` line of the text report (`save_log_file=true`), or extend `SimLog`.
+
+## Charts and visualization
+
+### Why were no charts generated?
+
+Three conditions can prevent charts:
+
+- `save_charts=false` disables both aggregate and per-iteration images.
+- `parallel_simulation=true` disables both aggregate charts and the live visualizer, so parallel runs produce no images at all.
+- Per-iteration snapshots also require `display_real_time_charts=true`.
+
+The aggregate charts run in sequential mode when `save_charts=true`, even if live display is off. See [Output and metrics](output-and-metrics.md).
+
+### Where is `Final results`?
+
+It is created next to the CSV file: `<output>/<timestamp>/Final results/`. Inside are `Architectures ...` and `Algorithms ...` folders grouped by metric family. If the folder is missing, check that the run was sequential and that `save_charts` was true.
+
+### The aggregate charts are empty or have one point.
+
+The x-axis is the edge device count. A sweep with a single device count produces a single point per series. Add device counts to get lines.
+
+### Can I get the raw chart data?
+
+Yes. The charts are drawn from the CSV. Read the CSV directly and plot it with your own tool; this is also the recommended route for publication figures because it gives full control over colors, labels, and confidence intervals.
+
+## Custom models and orchestrators
+
+### Can I replay a recorded production trace instead of generating random tasks?
+
+Yes, and it is worth doing when the claim depends on burstiness. Override `generate()`
+in a task generator, read the file, and call `scheduleTask` per line: the whole task
+list is returned before the first event, so no core change is needed.
+[Example 25](../PureEdgeSim/examples/Example25/README.md) replays 8819 recorded LLM
+inference requests from the Azure dataset published with the Splitwise paper. On the
+same server, the recorded hour produced 120201 seconds of queueing and a 36.06 percent
+deadline success rate, while a Poisson generator tuned to its mean rate and mean task
+sizes produced 173 seconds and a 100 percent success rate, at 42.42 and 41.56 percent
+CPU utilization.
+
+Two limits to know: the simulation clock ticks in whole seconds, so arrivals are
+rounded to their second and requests sharing a second lose their internal order; and
+`generate()` runs before the event loop, so the trace is a fixed schedule that cannot
+react to what the simulation decides. See [Simulation models](models.md#recorded-traces).
+
+### How do I add a new orchestration algorithm?
+
+Set a free-form algorithm name in `orchestration_algorithms` and handle that name in a custom orchestrator. Algorithm names are not validated by the parser; your class decides what they mean. Architecture names, by contrast, are fixed by `Orchestrator.initialize()`. See [Writing orchestrators](writing-orchestrators.md).
+
+### How do I add a new architecture?
+
+You cannot add one through configuration alone. The seven architecture names are hard-coded in `Orchestrator.initialize()`, and an unknown name leaves the candidate list and layer array unset. Adding an architecture requires a custom orchestrator that overrides `initialize()` and a scenario configuration that accepts the name.
+
+### Why does my custom class fail with `NoSuchMethodException`?
+
+Models are instantiated reflectively with fixed constructor signatures. Check the table in [Models](models.md). A common mistake is swapping the storage and RAM arguments of the computing node constructor, or using a different order than the one declared.
+
+### Can I change the energy model without replacing the computing node?
+
+Not through a top-level setter. The default generator constructs `EnergyModelComputingNode` inside `createComputingNode`. Replace the model in a custom computing node constructor, or provide a custom computing nodes generator that assigns your energy model. See [Customizing models](customizing-models.md).
+
+### Can I model a node that crashes and a standby that takes over?
+
+Not through configuration. The framework switches a device off only when its battery reaches zero, and nothing in it re-points the requests already on their way to a node that just died. Both are example-level work: `Example26` schedules three events of its own, on tags of its own, from a custom simulation manager, marks the orchestrating device dead halfway through the run, brings a cold standby up ten simulated seconds later, and lets every device re-decide which live orchestrator it works for on its next request. What the outage costs is counted from the tasks the manager still sees, device alive and orchestrator dead, and is printed per class of traffic in the console summary. See [Customizing models](customizing-models.md#custom-simulation-manager).
+
+### Why does my custom event never arrive?
+
+Common causes:
+
+- The event tag collides with a base-class tag.
+- The event was scheduled on another entity.
+- `processEvent` does not call `super.processEvent`, which breaks the base behavior, or returns before handling the tag.
+- The model was never registered with the matching setter.
+
+Use deep logging and a short scenario to trace the first events.
+
+### How do I print per-task decisions?
+
+Set `deep_log_enabled=true`. The orchestrator base class logs each assignment, and the simulation manager logs the task pipeline. The output is large, so use it on a short run.
+
+### Can I run a custom orchestrator with the default algorithms in the same sweep?
+
+Yes. Extend `DefaultOrchestrator` and delegate to `super.findComputingNode(...)` for `TRADE_OFF` and `ROUND_ROBIN`, then handle your own algorithm name. See [Writing orchestrators](writing-orchestrators.md).
+
+## Energy and battery
+
+### Why do data centers report no battery?
+
+Only edge devices are battery powered by default. The `battery` field in `edge_devices.xml` controls it, and data center entries do not have that field. Battery-death statistics therefore refer to edge devices.
+
+### Why is the average remaining power high when many devices died?
+
+The average is computed over battery-powered devices that are still alive. Dead devices are represented as zero in the per-device list but excluded from the average. Read the dead-device count and the per-device list together.
+
+### Why did no device die even with a small battery?
+
+Check that the device entry actually has `battery=true`, a finite `batteryCapacity`, and a nonzero initial level. Also check the simulation horizon: death is only detected on `update_interval` ticks, and a long horizon is needed to drain a battery through idle and dynamic consumption.
+
+## Research practice
+
+### How many repetitions do I need?
+
+At least 10 to 30 per scenario for means, and more for heavy-tailed metrics such as first death time. Report the number and a confidence interval or IQR. A single run is not evidence. See [Research guide](research-guide.md).
+
+### Can I compare a 10-minute run with a 60-minute run?
+
+No. The number of tasks, battery states, and in-flight censoring differ. Fix the horizon across compared scenarios and justify it.
+
+### How do I cite PureEdgeSim?
+
+Use the framework papers listed in the repository README, preferably the 2021 PureEdgeSim paper and the 2025 comparative study, rather than the GitHub URL. Include the version and any model changes in your methodology.
+
+### Where do I report a bug or ask for help?
+
+Use the GitHub issue tracker. Include the settings files, the PureEdgeSim version or commit, the Java version, the exact command, and the full console output. A runnable minimal scenario is worth more than a screenshot.

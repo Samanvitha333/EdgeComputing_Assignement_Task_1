@@ -1,0 +1,33 @@
+target/
+/output/
+/PureEdgeSim/output/
+/PureEdgeSim/examples/*/output/*
+!/PureEdgeSim/examples/*/output/.gitkeep
+
+#Ignore IntelliJ IDEA project files
+.idea/
+*.uml
+*.iml
+*.ipr
+*.iws
+
+#Eclipse project files
+.classpath
+.project
+.settings/
+bin/
+
+#NetBeans project files
+nbproject/
+**/nb-configuration.xml
+
+#Windows files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+#Local test artifacts
+*.log
+cp.txt
+hs_err_pid*
+test-output/

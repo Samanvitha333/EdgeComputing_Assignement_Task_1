@@ -1,71 +1,30 @@
-
-# ==============================
-# Java / Maven build artifacts
-# ==============================
-target/
-*.class
-*.jar
-*.war
-*.ear
-
-# Maven temporary files
-.release.properties
-pom.xml.releaseBackup
-
-# ==============================
-# Logs and runtime outputs
-# ==============================
-*.log
-logs/
-temp/
-tmp/
-
-# ==============================
-# Python analysis environment
-# ==============================
-__pycache__/
-*.py[cod]
-.pytest_cache/
+# Python virtual environments - anywhere in the repository
 .venv/
 venv/
 env/
+ENV/
 
-# ==============================
-# Jupyter notebooks
-# ==============================
-.ipynb_checkpoints/
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
 
-# ==============================
-# IDE/editor files
-# ==============================
+# Maven build output - anywhere in the repository
+target/
+
+# IDE files
 .idea/
 .vscode/
-*.iml
-.project
-.classpath
-.settings/
 
-# ==============================
-# OS-generated files
-# ==============================
+# OS files
 .DS_Store
 Thumbs.db
-Desktop.ini
 
-# ==============================
-# Secrets and credentials
-# ==============================
-.env
-.env.*
-!.env.example
-*.pem
-*.key
-credentials.json
-
-# ==============================
-# Temporary experiment files
-# ==============================
+# Temporary / backup files
+*.backup
 *.bak
-*.swp
 *.tmp
+*~
 
+# Logs
+*.log
